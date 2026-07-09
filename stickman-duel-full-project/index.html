@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stickman Duel — 2D Multiplayer Shooter</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="game-root">
+  <div id="canvas-wrap">
+    <canvas id="game-canvas" width="1280" height="720"></canvas>
+    <div id="fps-counter">60 FPS</div>
+
+    <!-- Online multiplayer chat (only relevant/shown during online play) -->
+    <button id="chat-toggle" class="hidden-guide">💬</button>
+    <div id="chat-panel" class="hidden">
+      <div id="chat-log"></div>
+      <form id="chat-form">
+        <input id="chat-input" maxlength="200" autocomplete="off" placeholder="Message your opponent...">
+        <button type="submit">Send</button>
+      </form>
+    </div>
+
+    <!-- Permanent control guides (always visible during play) -->
+    <div class="control-guide left">
+      <h4>PLAYER 1 — BLUE</h4>
+      <div><span class="key">A</span>/<span class="key">D</span> Move</div>
+      <div><span class="key">W</span>/<span class="key">S</span> Jump / Space: Down</div>
+      <div><span class="key">F</span> Shoot</div>
+      <div><span class="key">R</span>/<span class="key">V</span> Aim Up/Down</div>
+      <div><span class="key">Q</span> Switch Weapon</div>
+      <div><span class="key">E</span> Shield</div>
+      <div><span class="key">C</span> Special</div>
+    </div>
+    <div class="control-guide right">
+      <h4>PLAYER 2 — RED</h4>
+      <div><span class="key">←</span>/<span class="key">→</span> Move</div>
+      <div><span class="key">↑</span>/<span class="key">↓</span> Jump / Space: Down</div>
+      <div><span class="key">/</span> Shoot</div>
+      <div><span class="key">PgUp</span>/<span class="key">PgDn</span> Aim</div>
+      <div><span class="key">RShift</span> Switch Weapon</div>
+      <div><span class="key">Enter</span> Shield</div>
+      <div><span class="key">RCtrl</span> Special</div>
+    </div>
+
+    <!-- ===================== MAIN MENU ===================== -->
+    <div id="main-menu" class="screen">
+      <h1>STICKMAN DUEL</h1>
+      <div class="subtitle">A 2D multiplayer stickman shooter</div>
+      <button class="menu-btn primary" id="btn-local">Play Local Multiplayer</button>
+      <button class="menu-btn" id="btn-ai">Play vs AI Bot</button>
+      <button class="menu-btn" id="btn-online">Play Online Multiplayer</button>
+      <button class="menu-btn" id="btn-controls">Controls</button>
+      <button class="menu-btn" id="btn-settings">Settings</button>
+    </div>
+
+    <!-- ===================== MAP SELECT ===================== -->
+    <div id="map-select" class="screen hidden">
+      <h2>Choose a Map</h2>
+      <div class="map-grid">
+        <div class="map-card green-bg" data-map="green">Green Valley</div>
+        <div class="map-card city-bg" data-map="city">City Rooftops</div>
+        <div class="map-card moon-bg" data-map="moon">Moon</div>
+        <div class="map-card wind-bg" data-map="wind">Wind Map</div>
+        <div class="map-card space-bg" data-map="space">Deep Space</div>
+      </div>
+      <button class="back-btn">Back</button>
+    </div>
+
+    <!-- ===================== CONTROLS SCREEN ===================== -->
+    <div id="controls-screen" class="screen hidden">
+      <h2>Controls</h2>
+      <div class="controls-table">
+        <div class="controls-col">
+          <h3 style="color:#7fa6ff">Player 1 (Blue)</h3>
+          Move Left — A<br>
+          Move Right — D<br>
+          Jump — W<br>
+          Shoot — F<br>
+          Aim Up — R<br>
+          Aim Down — V<br>
+          Switch Weapon — Q<br>
+          Shield — E<br>
+          Special Ability — C
+        </div>
+        <div class="controls-col">
+          <h3 style="color:#ff8a8a">Player 2 (Red)</h3>
+          Move Left — Left Arrow<br>
+          Move Right — Right Arrow<br>
+          Jump — Up Arrow<br>
+          Shoot — /<br>
+          Aim Up — Page Up<br>
+          Aim Down — Page Down<br>
+          Switch Weapon — Right Shift<br>
+          Shield — Enter<br>
+          Special Ability — Right Ctrl
+        </div>
+      </div>
+      <div class="subtitle" style="margin-top:-6px; margin-bottom:18px;">
+        Deep Space map only: hold <strong>W</strong> / <strong>↑</strong> to rise,
+        <strong>S</strong> / <strong>↓</strong> to descend (no gravity there).
+      </div>
+      <button class="back-btn">Back</button>
+    </div>
+
+    <!-- ===================== SETTINGS SCREEN ===================== -->
+    <div id="settings-screen" class="screen hidden">
+      <h2>Settings</h2>
+      <div class="settings-row">
+        <label><input type="checkbox" id="mute-toggle"> Mute all sound</label>
+      </div>
+      <div class="settings-row">
+        <button class="menu-btn" id="btn-fullscreen" style="width:220px">Toggle Fullscreen</button>
+      </div>
+      <button class="back-btn">Back</button>
+    </div>
+
+    <!-- ===================== ONLINE SCREEN ===================== -->
+    <div id="online-screen" class="screen hidden">
+      <h2>Online Multiplayer</h2>
+      <div class="online-box">
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input id="server-url-input" placeholder="Server URL (blank = this page's server)">
+          <button class="menu-btn" id="btn-connect-server" style="width:120px; margin:0;">Connect</button>
+        </div>
+        <div id="online-status"></div>
+        <button class="menu-btn primary" id="btn-create-room" style="width:220px">Create Room</button>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input id="room-code-input" placeholder="CODE" maxlength="8">
+          <button class="menu-btn" id="btn-join-room" style="width:140px; margin:0;">Join Room</button>
+        </div>
+        <select id="online-map-select">
+          <option value="green">Green Valley</option>
+          <option value="city">City Rooftops</option>
+          <option value="moon">Moon</option>
+          <option value="wind">Wind Map</option>
+          <option value="space">Deep Space</option>
+        </select>
+        <button class="menu-btn" id="btn-host-start" style="width:220px">Start Match (Host Only)</button>
+      </div>
+      <button class="back-btn">Back</button>
+    </div>
+
+    <!-- ===================== PAUSE MENU ===================== -->
+    <div id="pause-menu" class="screen hidden">
+      <h2>Paused</h2>
+      <button class="menu-btn primary" id="btn-resume">Resume</button>
+      <button class="menu-btn" id="btn-restart">Restart Match</button>
+      <button class="menu-btn danger" id="btn-quit">Quit to Main Menu</button>
+    </div>
+
+    <!-- ===================== VICTORY SCREEN ===================== -->
+    <div id="victory-screen" class="screen hidden">
+      <h1 id="victory-title">Player Wins!</h1>
+      <div id="victory-score">Final Score: 5 - 3</div>
+      <button class="menu-btn primary" id="btn-play-again">Play Again</button>
+      <button class="menu-btn" id="btn-change-map">Change Map</button>
+      <button class="menu-btn" id="btn-main-menu">Main Menu</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Socket.IO client, loaded from CDN so online play works even when this
+     file is published as a static page (not served by server.js itself).
+     If there's no internet access this fails gracefully — Multiplayer
+     detects `io === undefined` and shows a clear message instead of
+     silently doing nothing. -->
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+<script src="physics.js"></script>
+<script src="weapons.js"></script>
+<script src="player.js"></script>
+<script src="ui.js"></script>
+<script src="multiplayer.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
