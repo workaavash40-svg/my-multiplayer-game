@@ -1,0 +1,20 @@
+{
+  "name": "stickman-duel",
+  "version": "2.0.0",
+  "description": "2D multiplayer stickman shooter (local, AI, and online modes)",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "node build/dev-server.js",
+    "build": "node build/build.js",
+    "start": "npm run build && node server/server.js",
+    "test": "playwright test tests/"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.0",
+    "@playwright/test": "^1.48.0"
+  }
+}

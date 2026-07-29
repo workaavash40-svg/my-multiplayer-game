@@ -1,0 +1,257 @@
+/* ============================================================
+   style.css
+   Layout, menu styling, and the permanent side control guides.
+   ============================================================ */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0; padding: 0;
+  width: 100%; height: 100%;
+  background: #000;
+  font-family: "Segoe UI", "Trebuchet MS", sans-serif;
+  overflow: hidden;
+  color: #fff;
+}
+
+#game-root {
+  position: relative;
+  width: 100vw; height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#canvas-wrap {
+  position: relative;
+  width: 1280px; max-width: 100vw;
+  height: 720px; max-height: 100vh;
+  aspect-ratio: 16/9;
+}
+
+#game-canvas {
+  width: 100%; height: 100%;
+  display: block;
+  background: #fafafa;
+  border-radius: 6px;
+  box-shadow: 0 0 40px rgba(0,0,0,0.6);
+}
+
+/* ---------------- Permanent control guides ----------------
+   Fixed to the viewport edges (not the canvas box) so they are
+   never clipped by the centered canvas on narrower screens. */
+.control-guide {
+  position: fixed;
+  top: 50%; transform: translateY(-50%);
+  width: 150px;
+  padding: 10px 12px;
+  background: rgba(10,10,15,0.72);
+  border-radius: 10px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  pointer-events: none;
+  backdrop-filter: blur(2px);
+  z-index: 25;
+}
+.control-guide h4 {
+  margin: 0 0 6px 0;
+  font-size: 12.5px;
+  letter-spacing: 0.5px;
+}
+.control-guide.left { left: 10px; border-left: 3px solid #2f6fed; }
+.control-guide.right { right: 10px; border-right: 3px solid #e83a3a; }
+.control-guide .key {
+  display: inline-block;
+  min-width: 20px;
+  padding: 1px 5px;
+  margin-right: 4px;
+  background: #2a2a34;
+  border: 1px solid #555;
+  border-radius: 4px;
+  font-weight: bold;
+  text-align: center;
+}
+.control-guide.left h4 { color: #7fa6ff; }
+.control-guide.right h4 { color: #ff8a8a; }
+.control-guide.hidden-guide { display: none; }
+
+#canvas-wrap { position: relative; }
+
+/* FPS counter */
+#fps-counter {
+  position: absolute;
+  top: 4px; right: 8px;
+  font-size: 11px;
+  color: #9f9;
+  z-index: 6;
+  pointer-events: none;
+}
+
+/* ---------------- Screens (menus/overlays) ---------------- */
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at center, #1c1f2b 0%, #07070b 100%);
+  z-index: 20;
+  border-radius: 6px;
+  text-align: center;
+  padding: 20px;
+}
+.screen.hidden { display: none; }
+
+.screen h1 {
+  font-size: 42px;
+  margin: 0 0 6px 0;
+  letter-spacing: 2px;
+  background: linear-gradient(90deg, #2f6fed, #e83a3a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.screen h2 { margin-top: 0; font-size: 26px; }
+.subtitle { color: #999; margin-bottom: 26px; font-size: 14px; }
+
+.menu-btn {
+  width: 280px;
+  margin: 6px 0;
+  padding: 13px 18px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  background: #1c2333;
+  border: 1px solid #3a4460;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.12s, background 0.12s;
+}
+.menu-btn:hover { background: #2a3550; transform: translateY(-2px); }
+.menu-btn.primary { background: linear-gradient(90deg,#2f6fed,#5a8dff); border: none; }
+.menu-btn.primary:hover { filter: brightness(1.1); }
+.menu-btn.danger { background: #5a1f1f; border-color: #a33; }
+
+.back-btn {
+  margin-top: 20px;
+  padding: 8px 22px;
+  background: transparent;
+  border: 1px solid #555;
+  color: #ccc;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.back-btn:hover { background: #222; }
+
+/* Map select cards */
+.map-grid {
+  display: flex;
+  gap: 18px;
+  margin: 10px 0 26px 0;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.map-card {
+  width: 190px;
+  height: 130px;
+  border-radius: 10px;
+  cursor: pointer;
+  border: 2px solid #333;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  padding-bottom: 10px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  transition: transform 0.15s, border-color 0.15s;
+}
+.map-card:hover { transform: scale(1.04); border-color: #fff; }
+.map-card.green-bg { background: linear-gradient(#8fd3f4, #6fbf6f 65%, #4f9d4f); }
+.map-card.city-bg { background: linear-gradient(#2b3358, #7c6a92); }
+.map-card.moon-bg { background: radial-gradient(circle at 70% 20%, #3a3a55, #06061a 70%); }
+.map-card.wind-bg { background: linear-gradient(#9fd4f2, #e8f6ff); color: #113; text-shadow: none; }
+.map-card.space-bg { background: radial-gradient(circle at 50% 40%, #23234a, #020208 75%); }
+
+/* Controls screen table */
+.controls-table {
+  display: flex; gap: 40px; margin-bottom: 10px; flex-wrap: wrap; justify-content: center;
+}
+.controls-col { text-align: left; font-size: 14px; line-height: 1.9; }
+.controls-col h3 { text-align: center; }
+
+/* Settings */
+.settings-row {
+  display: flex; align-items: center; gap: 10px;
+  margin: 10px 0; font-size: 15px;
+}
+
+/* Online screen */
+.online-box { display: flex; flex-direction: column; gap: 10px; align-items: center; margin-bottom: 14px; }
+#room-code-input {
+  padding: 8px 10px; font-size: 16px; text-transform: uppercase;
+  width: 140px; text-align: center; border-radius: 6px; border: 1px solid #555;
+  background: #111; color: #fff; letter-spacing: 3px;
+}
+#server-url-input {
+  padding: 8px 10px; font-size: 14px; width: 260px; border-radius: 6px;
+  border: 1px solid #555; background: #111; color: #fff;
+}
+#online-status { min-height: 20px; color: #7fdc7f; font-size: 13px; max-width: 460px; }
+#online-map-select {
+  padding: 6px 10px; border-radius: 6px; background: #111; color: #fff; border: 1px solid #555;
+}
+
+/* Online chat */
+#chat-toggle {
+  position: fixed;
+  bottom: 90px; right: 16px;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: #2f6fed;
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  z-index: 30;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+#chat-toggle.hidden-guide { display: none; }
+#chat-panel {
+  position: fixed;
+  bottom: 142px; right: 16px;
+  width: 260px;
+  max-height: 300px;
+  background: rgba(12,12,18,0.92);
+  border: 1px solid #333;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  z-index: 30;
+  overflow: hidden;
+}
+#chat-panel.hidden { display: none; }
+#chat-log {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  font-size: 12.5px;
+  max-height: 220px;
+}
+.chat-line { margin-bottom: 5px; padding: 4px 7px; border-radius: 6px; word-break: break-word; }
+.chat-line.me { background: #2f6fed33; text-align: right; }
+.chat-line.them { background: #e83a3a33; }
+#chat-form { display: flex; border-top: 1px solid #333; }
+#chat-input {
+  flex: 1; border: none; background: #16161e; color: #fff; padding: 8px; font-size: 12.5px;
+}
+#chat-form button {
+  border: none; background: #2f6fed; color: #fff; padding: 0 12px; cursor: pointer; font-size: 12.5px;
+}
+
+/* Victory screen */
+#victory-title { font-size: 46px; margin-bottom: 6px; }
+#victory-score { font-size: 18px; color: #ccc; margin-bottom: 24px; }
+
+@media (max-width: 760px) {
+  .control-guide { display: none; }
+}
