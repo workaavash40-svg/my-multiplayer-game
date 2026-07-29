@@ -9,6 +9,7 @@ export const CANVAS_WIDTH = 1280;
 export const CANVAS_HEIGHT = 720;
 export const TARGET_SCORE = 5;      // first player to this many round-wins takes the match
 export const ROUND_RESPAWN_DELAY_FRAMES = 90;
+export const COUNTDOWN_SECONDS = 5; // pre-match countdown; no damage/movement until it hits 0
 
 // ---------- Key bindings (guaranteed no overlap between the two local players) ----------
 // `down` is only used for descending in zero-gravity maps (Space) — it's

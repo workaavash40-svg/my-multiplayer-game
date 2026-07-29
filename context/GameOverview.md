@@ -45,10 +45,21 @@ damage while active, 10s cooldown.
 
 ## Scoring
 
-First to 5 round-wins takes the match. A round ends when either player's
-HP hits 0; both respawn at full HP with score kept. Reaching 5 shows the
+First to 5 round-wins takes the match. Each match opens with a 5-second
+countdown (with tick/go sound effects) during which neither player can
+move, shoot, or take damage. A round ends when either player's HP hits
+0; both respawn instantly at full HP with score kept (no countdown
+between rounds — only at the start of the match). Reaching 5 shows the
 victory screen (Play Again / Change Map / Main Menu). Online matches
 personalize this to "You Win!"/"You Lose!" per screen.
+
+## Knowing which character is yours
+
+In **vs AI Bot** and **Online Multiplayer** modes, a small bobbing gold
+marker appears above the character you're controlling — useful in online
+play since your color (Blue/Red) is assigned randomly each match. Local
+2-player mode doesn't show this (both characters are human-controlled
+there, so it's unambiguous).
 
 ## What this game does NOT have
 

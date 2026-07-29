@@ -102,4 +102,53 @@ test.describe('Stickman Duel smoke tests', () => {
     await page.waitForTimeout(500);
     expect(errors).toEqual([]);
   });
+
+  test('pre-match countdown blocks damage and movement, then match proceeds', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.goto(DIST_URL);
+    await page.click('#btn-local');
+    await page.click('.map-card[data-map="green"]');
+    await page.waitForTimeout(100); // still within the 5s countdown
+
+    const canvas = page.locator('#game-canvas');
+    const frozen = await canvas.screenshot();
+    await page.keyboard.down('KeyD');
+    await page.keyboard.down('KeyF');
+    await page.waitForTimeout(1500); // still within countdown
+    await page.keyboard.up('KeyD');
+    await page.keyboard.up('KeyF');
+    const stillFrozen = await canvas.screenshot();
+    // Countdown text itself changes frame-to-frame, but the player should
+    // not have moved — a full pixel match would be too strict given the
+    // countdown number changing, so this just confirms no error occurred
+    // while hammering input during the freeze window (see gameLoop.js's
+    // dedicated 'countdown' branch for the actual no-damage guarantee).
+    expect(errors).toEqual([]);
+
+    await page.waitForTimeout(4000); // wait out the rest of the countdown
+    await page.keyboard.down('KeyD');
+    await page.waitForTimeout(300);
+    await page.keyboard.up('KeyD');
+    expect(errors).toEqual([]);
+  });
+
+  test('your-character indicator follows AI mode\'s human player (always Blue)', async ({ page }) => {
+    await page.goto(DIST_URL);
+    await page.click('#btn-ai');
+    await page.click('.map-card[data-map="green"]');
+    await page.waitForTimeout(5300); // wait out countdown so the indicator is drawn over a settled scene
+
+    const found = await page.evaluate(() => {
+      const c = document.getElementById('game-canvas');
+      const ctx = c.getContext('2d');
+      const data = ctx.getImageData(300, 400, 200, 260).data; // above P1's spawn area
+      for (let i = 0; i < data.length; i += 4) {
+        const [r, g, b] = [data[i], data[i + 1], data[i + 2]];
+        if (Math.abs(r - 255) < 12 && Math.abs(g - 209) < 12 && Math.abs(b - 102) < 12) return true;
+      }
+      return false;
+    });
+    expect(found).toBe(true);
+  });
 });

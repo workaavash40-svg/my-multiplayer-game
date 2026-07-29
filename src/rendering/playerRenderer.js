@@ -192,3 +192,35 @@ export function drawPlayerOverhead(ctx, player) {
   ctx.fillRect(bx, by, barW * pct, barH);
   ctx.restore();
 }
+
+// A bobbing marker above the local human's own character — shown when
+// which character is "yours" isn't obvious (AI mode: you're always
+// Blue/p1; online mode: your color is randomly assigned per match).
+export function drawYourCharacterIndicator(ctx, player, frame) {
+  const bob = Math.sin(frame * 0.08) * 4;
+  const px = player.x;
+  const py = player.y - 112 + bob;
+
+  ctx.save();
+  ctx.translate(px, py);
+
+  // Soft dark outline so the marker reads against any background.
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.beginPath();
+  ctx.moveTo(0, 11);
+  ctx.lineTo(-9, -7);
+  ctx.lineTo(9, -7);
+  ctx.closePath();
+  ctx.fill();
+
+  // Bright downward-pointing chevron.
+  ctx.fillStyle = '#ffd166';
+  ctx.beginPath();
+  ctx.moveTo(0, 8);
+  ctx.lineTo(-7, -6);
+  ctx.lineTo(7, -6);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.restore();
+}

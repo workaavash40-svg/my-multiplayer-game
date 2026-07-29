@@ -105,6 +105,26 @@ Flow:
    using each client's own `Multiplayer.myColor` compared to the
    winner's color.
 
+### Security notes
+
+- **`ALLOWED_ORIGIN` env var** controls Socket.IO's CORS setting
+  (defaults to `*` for zero-config ease of use — set it to your real
+  site's URL once you have one, e.g. `https://your-game.netlify.app`, to
+  stop other sites from opening connections to your server).
+- **Rate limiting** (`server/rateLimiter.js`) applies to room
+  create/join/start and chat (not to `input`/`state-update-broadcast`,
+  which legitimately fire every frame during gameplay).
+- **No auth, no accounts, no persisted data** — rooms are in-memory and
+  gone on disconnect/server restart. There's nothing to "hack" in the
+  sense of stolen data, but there's also no protection against a
+  malicious *host* client sending fabricated match state (the host is
+  trusted by design — see the netcode architecture above). Fine for
+  casual play between friends; not suitable for anything competitive
+  without a heavier server-authoritative rewrite.
+- **Client-side cheating is possible** (as with any browser game) —
+  anyone can edit their own game state via devtools. This is a known,
+  accepted limitation, not a bug.
+
 ## Particles & Audio
 
 `engine/particles.js` — a flat list of `{x,y,vx,vy,life,color,size}`
@@ -113,6 +133,47 @@ squares with simple gravity/drag, used for hit sparks and dash trails.
 `engine/audio.js` — every sound effect is synthesized at runtime with the
 Web Audio API (oscillator + gain envelope per named preset). No audio
 files are shipped or loaded.
+
+## Pre-match countdown
+
+`Game.startMatch()` sets `state = 'countdown'` (not `'playing'`) with
+`countdownFrames = COUNTDOWN_SECONDS * 60` (`config/constants.js`,
+default 5s). While `state === 'countdown'`, `update()` takes a dedicated
+early-return branch: it only decrements the countdown timer and plays a
+tick sound (`SFX.play('countdown')` each whole second, `'countdownGo'`
+at zero) — **no player input is read, no physics runs, no bullets are
+processed**, which is what guarantees zero damage/movement during the
+freeze (verified in `tests/smoke.spec.js`). `render()` draws the frozen
+scene normally plus a big centered number (or "FIGHT!" at zero) over a
+dark overlay. Once `countdownFrames` reaches 0, `state` flips to
+`'playing'` and the normal loop takes over.
+
+This only happens once per match (`startMatch()`), not once per round —
+`respawnRound()` (called between rounds within an ongoing match) does
+not touch `state`, so mid-match respawns are instant as before.
+
+In online play, **both** host and guest independently run this same
+deterministic 300-frame countdown locally after each receives the
+`match-start` event — it's cosmetic/timing-only (no gameplay-affecting
+action is possible during it), so it doesn't need network sync.
+
+## Your-character indicator
+
+A small bobbing chevron (`rendering/playerRenderer.js`'s
+`drawYourCharacterIndicator`) drawn above whichever character the local
+human is controlling, for the two cases where that's genuinely ambiguous:
+
+- **vs AI mode** — always points at `p1` (the human; `p2` is the bot).
+- **Online mode** — points at whichever of `p1`/`p2` matches
+  `Multiplayer.myColor`, which is assigned randomly per match by the
+  server (see above) and can't be known in advance.
+
+It's deliberately **not** shown in local 2-player mode — both characters
+are human-controlled simultaneously there, and each player already knows
+their own color/key-set, so the indicator would just be clutter. The
+decision of which player (if any) to mark lives in
+`engine/gameLoop.js#render()`; the drawing itself is in `rendering/`, per
+the usual simulation/rendering split.
 
 ## Scoring / Match Flow (`engine/gameLoop.js`)
 

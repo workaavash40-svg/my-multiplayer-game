@@ -26,25 +26,38 @@
        state back to the guest, every frame. The host is authoritative
        for physics/collision to prevent desync and simple cheating.
      - Relay chat messages between the two players in a room.
+     - Rate-limit room create/join/start and chat (server/rateLimiter.js)
+       and restrict CORS via the ALLOWED_ORIGIN env var — see
+       docs/Systems.md#security-notes.
 
-   NOTE: this is a verbatim port of the original server.js — only
-   the static-file path changed (now serves ../dist, the build
-   output, instead of its own directory).
+   NOTE: this is a port of the original server.js — the static-file
+   path changed (now serves ../dist, the build output) and security
+   hardening (rate limiting, configurable CORS) was added on top; the
+   core relay logic itself is unchanged.
    ============================================================ */
 
 const path = require('path');
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const { createRateLimiter } = require('./rateLimiter');
 
 const app = express();
 const server = http.createServer(app);
-// CORS is wide open here because this server may be hosted separately
-// from the static game build (e.g. game on a static host, server on
-// Render/Railway). Tighten `origin` to your real domain in production.
-const io = new Server(server, { cors: { origin: '*' } });
+// CORS: defaults to '*' so the game works out of the box even when
+// hosted separately from this server (e.g. game on a static host,
+// server on Render/Railway) — but you should set ALLOWED_ORIGIN to your
+// real site's URL (e.g. "https://your-game.netlify.app") once you know
+// it, to stop other websites from being able to open connections here.
+const io = new Server(server, { cors: { origin: process.env.ALLOWED_ORIGIN || '*' } });
 
 const PORT = process.env.PORT || 3000;
+
+// Rate limits: generous enough for normal play, tight enough to blunt
+// casual spam. Tune here if needed — nothing else in the codebase
+// depends on these exact numbers.
+const roomActionLimiter = createRateLimiter(8, 10_000);   // create/join/start: 8 per 10s
+const chatLimiter = createRateLimiter(10, 10_000);        // chat: 10 messages per 10s
 
 // Serve the built single-file game from dist/ (see build/build.js).
 app.use(express.static(path.join(__dirname, '..', 'dist')));
@@ -65,6 +78,9 @@ function generateRoomCode() {
 
 io.on('connection', (socket) => {
   socket.on('create-room', () => {
+    if (!roomActionLimiter.allow(socket.id)) {
+      return socket.emit('room-error', 'Too many attempts — please wait a moment and try again.');
+    }
     const code = generateRoomCode();
     rooms[code] = { hostId: socket.id, guestId: null };
     socket.join(code);
@@ -74,6 +90,9 @@ io.on('connection', (socket) => {
   });
 
   socket.on('join-room', (code) => {
+    if (!roomActionLimiter.allow(socket.id)) {
+      return socket.emit('room-error', 'Too many attempts — please wait a moment and try again.');
+    }
     const room = rooms[code];
     if (!room) return socket.emit('room-error', 'Room not found.');
     if (room.guestId) return socket.emit('room-error', 'Room is full.');
@@ -89,6 +108,7 @@ io.on('connection', (socket) => {
   // Each participant is randomly assigned 'p1' (Blue) or 'p2' (Red),
   // independent of host/guest role, per player-experience requirements.
   socket.on('start-match', ({ room, mapId }) => {
+    if (!roomActionLimiter.allow(socket.id)) return;
     const r = rooms[room];
     if (!r || r.hostId !== socket.id || !r.guestId) return;
     const hostColor = Math.random() < 0.5 ? 'p1' : 'p2';
@@ -113,6 +133,7 @@ io.on('connection', (socket) => {
 
   // Relay chat between the two players in a room.
   socket.on('chat-message', ({ room, text }) => {
+    if (!chatLimiter.allow(socket.id)) return; // silently drop — no need to alert a spammer
     const r = rooms[room];
     if (!r || !text) return;
     const clean = String(text).slice(0, 200);
@@ -121,6 +142,8 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
+    roomActionLimiter.forget(socket.id);
+    chatLimiter.forget(socket.id);
     const code = socket.data.room;
     if (!code || !rooms[code]) return;
     const room = rooms[code];

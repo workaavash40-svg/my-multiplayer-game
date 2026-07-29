@@ -543,7 +543,9 @@ html, body {
             shield: { type: "sine", f0: 500, f1: 700, dur: 0.2, vol: 0.1 },
             hit: { type: "square", f0: 150, f1: 50, dur: 0.08, vol: 0.13 },
             victory: { type: "triangle", f0: 440, f1: 880, dur: 0.6, vol: 0.15 },
-            menu: { type: "sine", f0: 500, f1: 650, dur: 0.06, vol: 0.08 }
+            menu: { type: "sine", f0: 500, f1: 650, dur: 0.06, vol: 0.08 },
+            countdown: { type: "square", f0: 440, f1: 440, dur: 0.1, vol: 0.13 },
+            countdownGo: { type: "sawtooth", f0: 660, f1: 990, dur: 0.35, vol: 0.16 }
           };
           const p = presets[name] || presets.menu;
           osc.type = p.type;
@@ -1019,10 +1021,11 @@ html, body {
   });
 
   // src/config/constants.js
-  var TARGET_SCORE, P1_KEYS, P2_KEYS;
+  var TARGET_SCORE, COUNTDOWN_SECONDS, P1_KEYS, P2_KEYS;
   var init_constants = __esm({
     "src/config/constants.js"() {
       TARGET_SCORE = 5;
+      COUNTDOWN_SECONDS = 5;
       P1_KEYS = {
         left: "KeyA",
         right: "KeyD",
@@ -1706,6 +1709,28 @@ html, body {
     ctx.fillRect(bx, by, barW * pct, barH);
     ctx.restore();
   }
+  function drawYourCharacterIndicator(ctx, player, frame) {
+    const bob = Math.sin(frame * 0.08) * 4;
+    const px = player.x;
+    const py = player.y - 112 + bob;
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    ctx.beginPath();
+    ctx.moveTo(0, 11);
+    ctx.lineTo(-9, -7);
+    ctx.lineTo(9, -7);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#ffd166";
+    ctx.beginPath();
+    ctx.moveTo(0, 8);
+    ctx.lineTo(-7, -6);
+    ctx.lineTo(7, -6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
   var init_playerRenderer = __esm({
     "src/rendering/playerRenderer.js"() {
       init_weaponData();
@@ -2157,7 +2182,7 @@ html, body {
         canvas: null,
         ctx: null,
         state: "menu",
-        // menu | playing | paused | matchover
+        // menu | countdown | playing | paused | matchover
         mode: "local",
         // local | online
         mapId: "green",
@@ -2174,6 +2199,8 @@ html, body {
         aiEnabled: false,
         winnerColor: null,
         _mpInitDone: false,
+        countdownFrames: 0,
+        countdownLastSecondPlayed: -1,
         init() {
           this.canvas = document.getElementById("game-canvas");
           this.ctx = this.canvas.getContext("2d");
@@ -2201,7 +2228,9 @@ html, body {
           this.matchFrames = 0;
           this.roundDelay = 0;
           this.winnerColor = null;
-          this.state = "playing";
+          this.state = "countdown";
+          this.countdownFrames = COUNTDOWN_SECONDS * 60;
+          this.countdownLastSecondPlayed = -1;
           hideAllScreens();
           setOnlineControlGuide(this.mode === "online");
         },
@@ -2246,6 +2275,17 @@ html, body {
           this.bullets = [];
         },
         update() {
+          if (this.state === "countdown") {
+            this.countdownFrames--;
+            const secondsLeft = Math.ceil(this.countdownFrames / 60);
+            if (secondsLeft !== this.countdownLastSecondPlayed) {
+              this.countdownLastSecondPlayed = secondsLeft;
+              SFX.play(secondsLeft > 0 ? "countdown" : "countdownGo");
+            }
+            if (this.countdownFrames <= 0) this.state = "playing";
+            this.prevKeys = { ...this.keys };
+            return;
+          }
           if (this.state !== "playing") return;
           this.matchFrames++;
           const map = MAPS[this.mapId];
@@ -2320,6 +2360,8 @@ html, body {
             }
             for (const b of this.bullets) b.draw(ctx);
             this.particles.draw(ctx);
+            const myPlayer = this.mode === "online" ? Multiplayer.myColor === "p1" ? this.p1 : Multiplayer.myColor === "p2" ? this.p2 : null : this.aiEnabled ? this.p1 : null;
+            if (myPlayer) drawYourCharacterIndicator(ctx, myPlayer, this.matchFrames);
             drawHUD(ctx, canvas.width, this.p1, this.p2, this.targetScore, this.matchFrames);
             drawWeaponBar(ctx, canvas.width, canvas.height, this.p1, "left");
             drawWeaponBar(ctx, canvas.width, canvas.height, this.p2, "right");
@@ -2334,6 +2376,23 @@ html, body {
               ctx.font = "bold 36px sans-serif";
               ctx.textAlign = "center";
               ctx.fillText("Round Point!", canvas.width / 2, canvas.height / 2);
+              ctx.restore();
+            }
+            if (this.state === "countdown") {
+              ctx.save();
+              ctx.fillStyle = "rgba(0,0,0,0.35)";
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+              const secondsLeft = Math.ceil(this.countdownFrames / 60);
+              ctx.textAlign = "center";
+              if (secondsLeft > 0) {
+                ctx.fillStyle = "#fff";
+                ctx.font = 'bold 130px "Segoe UI", sans-serif';
+                ctx.fillText(String(secondsLeft), canvas.width / 2, canvas.height / 2 + 45);
+              } else {
+                ctx.fillStyle = "#ffd166";
+                ctx.font = 'bold 90px "Segoe UI", sans-serif';
+                ctx.fillText("FIGHT!", canvas.width / 2, canvas.height / 2 + 30);
+              }
               ctx.restore();
             }
           }

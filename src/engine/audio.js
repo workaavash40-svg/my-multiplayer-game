@@ -29,7 +29,9 @@ export const SFX = {
       shield: { type: 'sine', f0: 500, f1: 700, dur: 0.2, vol: 0.1 },
       hit: { type: 'square', f0: 150, f1: 50, dur: 0.08, vol: 0.13 },
       victory: { type: 'triangle', f0: 440, f1: 880, dur: 0.6, vol: 0.15 },
-      menu: { type: 'sine', f0: 500, f1: 650, dur: 0.06, vol: 0.08 }
+      menu: { type: 'sine', f0: 500, f1: 650, dur: 0.06, vol: 0.08 },
+      countdown: { type: 'square', f0: 440, f1: 440, dur: 0.1, vol: 0.13 },
+      countdownGo: { type: 'sawtooth', f0: 660, f1: 990, dur: 0.35, vol: 0.16 }
     };
     const p = presets[name] || presets.menu;
     osc.type = p.type;

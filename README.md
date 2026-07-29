@@ -73,6 +73,13 @@ this whole project to Render/Railway/Fly.io/a VPS for a public URL. See
 [`docs/Systems.md`](docs/Systems.md#online-multiplayer) for the full
 online-play flow (room codes, host/guest roles, color assignment).
 
+**Security note:** once you know your deployed site's URL, set the
+`ALLOWED_ORIGIN` environment variable to it (e.g.
+`https://your-game.onrender.com`) to restrict which sites can connect to
+your Socket.IO server. It defaults to `*` (open) for zero-config local
+testing. The server also rate-limits room creation/joining and chat to
+blunt casual spam — see `server/rateLimiter.js`.
+
 ## Testing
 
 ```

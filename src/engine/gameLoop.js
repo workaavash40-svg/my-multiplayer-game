@@ -15,9 +15,9 @@ import { Physics } from './physics.js';
 import { Particles } from './particles.js';
 import { SFX } from './audio.js';
 import { readInput, bindKeyboard } from './input.js';
-import { CANVAS_WIDTH, CANVAS_HEIGHT, TARGET_SCORE, P1_KEYS, P2_KEYS } from '../config/constants.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, TARGET_SCORE, COUNTDOWN_SECONDS, P1_KEYS, P2_KEYS } from '../config/constants.js';
 import { Player } from '../entities/Player.js';
-import { drawPlayer, drawPlayerOverhead } from '../rendering/playerRenderer.js';
+import { drawPlayer, drawPlayerOverhead, drawYourCharacterIndicator } from '../rendering/playerRenderer.js';
 import { drawHUD, drawWeaponBar, drawSpecialCooldown, drawZeroGHint } from '../rendering/hud.js';
 import { MAPS } from '../features/maps/index.js';
 import { aiInput } from '../features/ai/aiBot.js';
@@ -26,7 +26,7 @@ import { updateFps, showScreen, hideAllScreens, setOnlineControlGuide, setVictor
 
 export const Game = {
   canvas: null, ctx: null,
-  state: 'menu', // menu | playing | paused | matchover
+  state: 'menu', // menu | countdown | playing | paused | matchover
   mode: 'local', // local | online
   mapId: 'green',
   targetScore: TARGET_SCORE,
@@ -41,6 +41,8 @@ export const Game = {
   aiEnabled: false,
   winnerColor: null,
   _mpInitDone: false,
+  countdownFrames: 0,
+  countdownLastSecondPlayed: -1,
 
   init() {
     this.canvas = document.getElementById('game-canvas');
@@ -64,7 +66,9 @@ export const Game = {
     this.matchFrames = 0;
     this.roundDelay = 0;
     this.winnerColor = null;
-    this.state = 'playing';
+    this.state = 'countdown';
+    this.countdownFrames = COUNTDOWN_SECONDS * 60;
+    this.countdownLastSecondPlayed = -1;
     hideAllScreens();
     setOnlineControlGuide(this.mode === 'online');
   },
@@ -111,6 +115,17 @@ export const Game = {
   },
 
   update() {
+    if (this.state === 'countdown') {
+      this.countdownFrames--;
+      const secondsLeft = Math.ceil(this.countdownFrames / 60);
+      if (secondsLeft !== this.countdownLastSecondPlayed) {
+        this.countdownLastSecondPlayed = secondsLeft;
+        SFX.play(secondsLeft > 0 ? 'countdown' : 'countdownGo');
+      }
+      if (this.countdownFrames <= 0) this.state = 'playing';
+      this.prevKeys = { ...this.keys };
+      return; // no physics/input/damage while the countdown is running
+    }
     if (this.state !== 'playing') return;
     this.matchFrames++;
     const map = MAPS[this.mapId];
@@ -210,6 +225,14 @@ export const Game = {
       for (const b of this.bullets) b.draw(ctx);
       this.particles.draw(ctx);
 
+      // Points at whichever character the local human is controlling —
+      // only meaningful where that's ambiguous (AI mode: always p1;
+      // online mode: color is randomly assigned per match).
+      const myPlayer = this.mode === 'online'
+        ? (Multiplayer.myColor === 'p1' ? this.p1 : (Multiplayer.myColor === 'p2' ? this.p2 : null))
+        : (this.aiEnabled ? this.p1 : null);
+      if (myPlayer) drawYourCharacterIndicator(ctx, myPlayer, this.matchFrames);
+
       drawHUD(ctx, canvas.width, this.p1, this.p2, this.targetScore, this.matchFrames);
       drawWeaponBar(ctx, canvas.width, canvas.height, this.p1, 'left');
       drawWeaponBar(ctx, canvas.width, canvas.height, this.p2, 'right');
@@ -225,6 +248,24 @@ export const Game = {
         ctx.font = 'bold 36px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText('Round Point!', canvas.width / 2, canvas.height / 2);
+        ctx.restore();
+      }
+
+      if (this.state === 'countdown') {
+        ctx.save();
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        const secondsLeft = Math.ceil(this.countdownFrames / 60);
+        ctx.textAlign = 'center';
+        if (secondsLeft > 0) {
+          ctx.fillStyle = '#fff';
+          ctx.font = 'bold 130px "Segoe UI", sans-serif';
+          ctx.fillText(String(secondsLeft), canvas.width / 2, canvas.height / 2 + 45);
+        } else {
+          ctx.fillStyle = '#ffd166';
+          ctx.font = 'bold 90px "Segoe UI", sans-serif';
+          ctx.fillText('FIGHT!', canvas.width / 2, canvas.height / 2 + 30);
+        }
         ctx.restore();
       }
     }
