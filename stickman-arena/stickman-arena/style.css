@@ -492,3 +492,7 @@ body.touch #stage { width: min(100vw, calc(100vh * 16 / 9)); width: min(100vw, c
   .lobby-split { flex-direction: row; align-items: flex-end; }
   .room-code { font-size: 2rem; }
 }
+
+/* Join row: keep the code box wide, button sized to its label */
+.lobby-col .join-row .btn { width: auto; flex: none; padding-left: 22px; padding-right: 22px; }
+.lobby-col .join-row input { flex: 1 1 auto; min-width: 90px; }

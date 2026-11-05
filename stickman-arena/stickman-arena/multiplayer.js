@@ -48,33 +48,51 @@ function initOnlineLobby() {
     if (window.__socket) { window.__socket.disconnect(); window.__socket = null; }
   }
 
-  function connect(onReady) {
-    if (typeof io === 'undefined') {
-      setStatus('Online play needs the game server. Start it with "node server.js" and open the game from that address (or use your deployed site).', true);
-      return;
-    }
-    if (window.__socket && window.__socket.connected) { onReady(window.__socket); return; }
-    dropSocket();
-    setStatus('Connecting…');
-    const socket = io({ transports: ['websocket', 'polling'] });
-    window.__socket = socket;
+  // Dev convenience: if the page came from Live Server / another static server
+  // (e.g. localhost:5500), look for the Node server on port 3001 of the same host.
+  // On a real deployment (no custom port) this never triggers.
+  let serverUrl;
+  function ensureSocketLib(done) {
+    if (typeof io !== 'undefined') return done(true);
+    const devPort = location.port && location.port !== '3001';
+    if (!devPort || location.protocol === 'file:') return done(false);
+    const base = `${location.protocol}//${location.hostname}:3001`;
+    const s = document.createElement('script');
+    s.src = base + '/socket.io/socket.io.js';
+    s.onload = () => { serverUrl = base; done(typeof io !== 'undefined'); };
+    s.onerror = () => done(false);
+    document.head.appendChild(s);
+  }
 
-    socket.on('connect', () => onReady(socket));
-    socket.on('connect_error', () => {
-      setStatus('Could not reach the server. Check your connection and try again.', true);
-      showChoose();
-    });
-    socket.on('startMatch', (payload) => {
-      setStatus('');
-      showChoose();
-      startOnlineMatch(payload.mapId || chosenMapId);
-    });
-    socket.on('opponentInput', (input) => { remoteInputBuffer = input; });
-    socket.on('opponentLeft', () => {
-      if (State.running) leaveMatch();
-      showChoose();
-      setStatus('Your opponent left the room.', true);
-      UI.showScreen('online-lobby');
+  function connect(onReady) {
+    if (window.__socket && window.__socket.connected) { onReady(window.__socket); return; }
+    setStatus('Connecting…');
+    ensureSocketLib((ok) => {
+      if (!ok) {
+        setStatus('Game server not found. In a terminal run "node server.js" (after "npm install"), then open http://localhost:3001 — or use your deployed Render link.', true);
+        return;
+      }
+      dropSocket();
+      const socket = io(serverUrl, { transports: ['websocket', 'polling'] });
+      window.__socket = socket;
+
+      socket.on('connect', () => onReady(socket));
+      socket.on('connect_error', () => {
+        setStatus('Could not reach the server. Check your connection and try again.', true);
+        showChoose();
+      });
+      socket.on('startMatch', (payload) => {
+        setStatus('');
+        showChoose();
+        startOnlineMatch(payload.mapId || chosenMapId);
+      });
+      socket.on('opponentInput', (input) => { remoteInputBuffer = input; });
+      socket.on('opponentLeft', () => {
+        if (State.running) leaveMatch();
+        showChoose();
+        setStatus('Your opponent left the room.', true);
+        UI.showScreen('online-lobby');
+      });
     });
   }
 
