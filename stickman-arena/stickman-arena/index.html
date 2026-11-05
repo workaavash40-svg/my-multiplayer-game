@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#15171c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Stickman Arena</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="game-container">
+
+  <!-- Layout row: [P1 controls] [stage] [P2 controls] -->
+  <div id="hud">
+    <aside id="controls-left" class="control-guide"></aside>
+    <div id="stage">
+      <canvas id="game-canvas"></canvas>
+      <button id="pause-btn" aria-label="Pause">❚❚</button>
+    </div>
+    <aside id="controls-right" class="control-guide"></aside>
+  </div>
+
+  <!-- ===================== TOUCH CONTROLS (phones/tablets, during a match) ===================== -->
+  <div id="touch-controls">
+    <div id="joystick-zone">
+      <div id="joystick-base"><div id="joystick-thumb"></div></div>
+    </div>
+    <button class="tbtn t-small" id="t-swap"   data-key="KeyQ"><span>SWAP</span><span class="sub">AK-47</span></button>
+    <button class="tbtn t-small" id="t-shield" data-key="KeyE"><span>SHIELD</span></button>
+    <button class="tbtn t-small" id="t-fly"    data-key="KeyC"><span>FLY</span></button>
+    <button class="tbtn t-jump"  id="t-jump"   data-key="KeyW"><span>JUMP</span></button>
+    <button class="tbtn t-fire"  id="t-fire"   data-key="KeyF" data-dragaim="1"><span>FIRE</span><span class="sub">drag to aim</span></button>
+    <button class="tbtn t-aim t-aim-up"   id="t-aimup"   data-key="KeyR"><span>▲</span></button>
+    <button class="tbtn t-aim t-aim-down" id="t-aimdown" data-key="KeyV"><span>▼</span></button>
+  </div>
+
+  <!-- ===================== MAIN MENU ===================== -->
+  <div id="main-menu" class="screen active">
+    <div class="menu-panel">
+      <h1 class="game-title">STICKMAN <span>ARENA</span></h1>
+      <p class="tagline">A fast, scrappy 2D duel — inspired by Mini Militia &amp; Deadshot.io</p>
+      <div class="menu-buttons">
+        <button id="btn-local" class="btn btn-primary">Play Local Multiplayer</button>
+        <button id="btn-online" class="btn btn-primary">Play Online Multiplayer</button>
+        <button id="btn-choose-map" class="btn">Choose Map</button>
+        <button id="btn-controls" class="btn">Controls</button>
+        <button id="btn-settings" class="btn">Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== LOCAL SETUP ===================== -->
+  <div id="local-setup" class="screen">
+    <div class="menu-panel">
+      <h2>Local Multiplayer</h2>
+      <p class="hint desktop-only">Two players, one keyboard. Split controls, no conflicts.</p>
+      <p class="hint touch-only">On a touch screen you play Blue against a bot. Use the joystick to move, drag the FIRE button to aim.</p>
+      <label class="toggle-row desktop-only">
+        <input type="checkbox" id="bot-toggle">
+        <span>No second player? Fight a bot instead</span>
+      </label>
+      <div class="menu-buttons">
+        <button id="local-continue" class="btn btn-primary">Choose Map →</button>
+        <button class="btn btn-back-menu">Back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MAP SELECT (starts match) ===================== -->
+  <div id="map-select" class="screen">
+    <div class="menu-panel wide">
+      <h2>Choose a Map</h2>
+      <div class="map-grid">
+        <div class="map-card" data-map="whitearena">
+          <div class="map-thumb thumb-white"></div>
+          <h4>White Arena</h4>
+          <p>Minimalist. One long platform. No obstacles.</p>
+        </div>
+        <div class="map-card" data-map="moon">
+          <div class="map-thumb thumb-moon"></div>
+          <h4>Moon / Space</h4>
+          <p>Low gravity. Jump much higher. Floating platforms.</p>
+        </div>
+        <div class="map-card" data-map="wind">
+          <div class="map-thumb thumb-wind"></div>
+          <h4>Wind Map</h4>
+          <p>Animated gusts. Special ability: temporary flight.</p>
+        </div>
+      </div>
+      <button class="btn btn-back-menu">Back</button>
+    </div>
+  </div>
+
+  <!-- ===================== MAP SELECT (sets backdrop/default only) ===================== -->
+  <div id="map-select-standalone" class="screen">
+    <div class="menu-panel wide">
+      <h2>Choose Default Map</h2>
+      <p class="hint">This sets the backdrop and the map highlighted next time.</p>
+      <div class="map-grid">
+        <div class="map-card" data-map="whitearena"><div class="map-thumb thumb-white"></div><h4>White Arena</h4></div>
+        <div class="map-card" data-map="moon"><div class="map-thumb thumb-moon"></div><h4>Moon / Space</h4></div>
+        <div class="map-card" data-map="wind"><div class="map-thumb thumb-wind"></div><h4>Wind Map</h4></div>
+      </div>
+      <button class="btn btn-back-menu">Back</button>
+    </div>
+  </div>
+
+  <!-- ===================== CONTROLS ===================== -->
+  <div id="controls-screen" class="screen">
+    <div class="menu-panel wide">
+      <h2>Controls</h2>
+      <p class="hint touch-only">Touch: joystick left (push up to jump) · FIRE hold, drag up/down to aim · SWAP / SHIELD / FLY buttons.</p>
+      <div class="controls-columns">
+        <div id="controls-p1-full" class="control-list"></div>
+        <div id="controls-p2-full" class="control-list"></div>
+      </div>
+      <button class="btn btn-back-menu">Back</button>
+    </div>
+  </div>
+
+  <!-- ===================== SETTINGS ===================== -->
+  <div id="settings-screen" class="screen">
+    <div class="menu-panel">
+      <h2>Settings</h2>
+      <label class="toggle-row"><input type="checkbox" id="sound-toggle" checked><span>Sound effects &amp; music</span></label>
+      <label class="toggle-row"><input type="checkbox" id="fps-toggle"><span>Show FPS counter</span></label>
+      <div class="menu-buttons">
+        <button id="fullscreen-btn" class="btn">Toggle Fullscreen</button>
+        <button class="btn btn-back-menu">Back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== ONLINE LOBBY ===================== -->
+  <div id="online-lobby" class="screen">
+    <div class="menu-panel wide">
+      <h2>Online Multiplayer</h2>
+
+      <!-- Step 1: create or join -->
+      <div id="lobby-choose">
+        <h4 class="section-label">Map (the host's choice is used)</h4>
+        <div class="map-grid" id="online-map-pick">
+          <div class="map-card selected" data-map="whitearena"><div class="map-thumb thumb-white"></div><h4>White Arena</h4></div>
+          <div class="map-card" data-map="moon"><div class="map-thumb thumb-moon"></div><h4>Moon / Space</h4></div>
+          <div class="map-card" data-map="wind"><div class="map-thumb thumb-wind"></div><h4>Wind Map</h4></div>
+        </div>
+
+        <div class="lobby-split">
+          <div class="lobby-col">
+            <h4 class="section-label">Host a game</h4>
+            <button id="online-create" class="btn btn-primary">Create Room</button>
+          </div>
+          <div class="lobby-or">or</div>
+          <div class="lobby-col">
+            <h4 class="section-label">Join a friend</h4>
+            <div class="join-row">
+              <input type="text" id="online-room-code" maxlength="4" placeholder="CODE" autocapitalize="characters" autocomplete="off" spellcheck="false">
+              <button id="online-join" class="btn">Join</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: host waits -->
+      <div id="lobby-waiting" hidden>
+        <p class="hint">Share this code. The match starts the moment your friend joins.</p>
+        <div id="room-code-display" class="room-code">----</div>
+        <div class="waiting-dots"><span></span><span></span><span></span></div>
+        <p class="hint">Waiting for opponent…</p>
+        <div class="menu-buttons">
+          <button id="room-copy" class="btn btn-primary">Copy code</button>
+          <button id="room-cancel" class="btn">Cancel room</button>
+        </div>
+      </div>
+
+      <p id="online-status" class="hint"></p>
+      <button class="btn btn-back-menu">Back</button>
+    </div>
+  </div>
+
+  <!-- ===================== PAUSE ===================== -->
+  <div id="pause-menu">
+    <div class="menu-panel">
+      <h2>Paused</h2>
+      <div class="menu-buttons">
+        <button id="resume-btn" class="btn btn-primary">Resume</button>
+        <button id="pause-fullscreen" class="btn">Fullscreen</button>
+        <button id="pause-change-map" class="btn">Change Map</button>
+        <button id="pause-main-menu" class="btn">Main Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== VICTORY ===================== -->
+  <div id="victory-screen" class="screen">
+    <div class="menu-panel">
+      <h2 id="victory-winner">Player Wins!</h2>
+      <p id="victory-score" class="victory-score"></p>
+      <div class="menu-buttons">
+        <button id="victory-play-again" class="btn btn-primary">Play Again</button>
+        <button id="victory-change-map" class="btn">Change Map</button>
+        <button id="victory-main-menu" class="btn">Main Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Portrait nudge on phones -->
+  <div id="rotate-hint">
+    <div class="rotate-icon">⟲</div>
+    <p>Rotate your phone to landscape to play</p>
+  </div>
+</div>
+
+<!-- served by server.js; absent when the page is opened without the Node server -->
+<script src="/socket.io/socket.io.js" onerror="void 0"></script>
+<script src="physics.js"></script>
+<script src="weapons.js"></script>
+<script src="player.js"></script>
+<script src="ui.js"></script>
+<script src="touch.js"></script>
+<script src="multiplayer.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

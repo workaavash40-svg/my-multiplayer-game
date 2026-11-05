@@ -1,0 +1,12 @@
+{
+  "name": "stickman-arena-server",
+  "version": "1.0.0",
+  "description": "Online multiplayer relay server for Stickman Arena",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "socket.io": "^4.7.5"
+  }
+}
