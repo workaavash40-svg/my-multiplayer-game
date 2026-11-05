@@ -1,129 +1,70 @@
-# Stickman Duel
+# Stickman Arena
 
-A 2D multiplayer stickman shooter — local 2-player (same keyboard), vs-AI,
-and online multiplayer (room codes, host-authoritative relay), 5 maps,
-5 weapons, a dash/flight special ability, and in-match chat for online play.
-Pure HTML5 Canvas + vanilla JS (ES modules), no game framework.
+A 2D stickman shooter inspired by Mini Militia and Deadshot.io, built with plain HTML/CSS/JS (no build step, no frameworks) plus an optional Node + Socket.io server for online play.
 
-This is the **refactored, modular version** of the project. Gameplay,
-controls, and balance are unchanged from the previous single-bundle
-version — only the internal organization changed. See
-[`docs/Architecture.md`](docs/Architecture.md) for *why* it's organized
-this way, and [`context/Roadmap.md`](context/Roadmap.md) for known gaps
-and ideas.
+## Play locally (single/local multiplayer) — no install needed
 
-## Folder structure
+Local multiplayer, bot mode, maps, weapons, and the whole UI work straight from the files:
 
-```
-src/
-  main.js              Entry point
-  config/               Tunable constants, key bindings
-  engine/                Game loop, physics, particles, audio, input
-  entities/               Player + projectile classes (simulation only)
-  rendering/               Canvas drawing: player renderer, HUD
-  features/
-    weapons/                Weapon data + AK-47 art
-    maps/                    One file per map + a registry
-    ai/                      AI bot heuristic
-    multiplayer/             Socket.IO client
-  ui/                    DOM screen management, menu bindings, chat
-server/                 Node/Express/Socket.IO backend (separate runtime)
-build/                  Build script (esbuild) + zero-dependency dev server
-public/                 Dev HTML/CSS (multi-file, needs a local server)
-dist/                   BUILD OUTPUT — single-file game (gitignored)
-tests/                  Playwright smoke tests
-docs/                   Architecture & systems documentation
-context/                AI-assistant context files (read these first if you're an AI working on this repo)
-prompts/                Reusable prompt templates for common tasks
-```
+1. Open `index.html` in a modern browser (Chrome/Edge/Firefox).
+   - Because the game fetches nothing external except the Google Font and the Socket.io client script, it's easiest to serve it rather than double-click it, e.g.:
+     ```
+     npx serve .
+     # or
+     python3 -m http.server 8080
+     ```
+     then visit `http://localhost:8080`.
+2. Click **Play Local Multiplayer**, optionally check **Fight a bot**, pick a map, and go.
 
-## Running it
+## Mobile / touch
 
-**Local dev (multi-file ES modules — requires a local server, browsers
-block ES module imports over `file://`):**
+Open the page on a phone (landscape). On touch devices the keyboard panels are replaced by on-screen controls and you play Blue vs a bot:
 
-```
+- **Joystick** (left half, floats under your thumb): left/right to move, push up to jump
+- **FIRE** (hold): auto-fire / bow charge. **Drag up/down while holding** to aim, or use the ▲ ▼ buttons
+- **JUMP**, **SWAP** (weapon), **SHIELD**, **FLY** (Wind map) — the shield/fly buttons show their cooldown draining
+
+Every round (and the match start) opens with an animated 3 · 2 · 1 · FIGHT! countdown; controls unlock on FIGHT!.
+The simulation runs at a fixed 60 Hz, so 90/120 Hz phones play at the same speed as desktops.
+
+## Controls
+
+**Player 1 (Blue):** A/D move, W jump, F shoot, R/V aim up/down, Q switch weapon, E shield, C special.
+**Player 2 (Red):** ←/→ move, ↑ jump, `/` shoot, PgUp/PgDn aim up/down, Right Shift switch weapon, Enter shield, Right Ctrl special.
+
+Both control panels are shown permanently on screen during a match.
+
+## Online multiplayer
+
+Online play needs the bundled relay server running somewhere reachable by both players.
+
+```bash
 npm install
-npm run dev
+node server.js
+# listens on http://localhost:3001 by default (set PORT env var to change)
 ```
 
-Open **http://localhost:5173/public/index.html**. Local Multiplayer and
-vs-AI-Bot work immediately.
+Then in the browser: **Play Online Multiplayer** → enter the server's URL (leave blank if the page is served from the same origin as the server) → one player clicks **Create Room** and shares the 4-letter code, the other enters it and clicks **Join Room**. The match starts automatically once both are in.
 
-**Single-file build (for static hosting / drag-and-drop deploy):**
+Networking model: each client runs the same local physics/animation code for both stickmen; only raw per-frame input is relayed between clients over Socket.io, so the two browsers stay in sync without needing a heavy server-authoritative rewrite.
 
-```
-npm run build
-```
+## File structure
 
-Produces `dist/index.html` — one file containing everything (JS bundled
-via esbuild, CSS inlined). Open it directly via double-click, or upload it
-to any static host (GitHub Pages, Netlify, etc.).
+| File | Purpose |
+|---|---|
+| `index.html` | Page shell, all menu/HUD screens |
+| `style.css` | Visual styling |
+| `physics.js` | Gravity, friction, platform collision helpers |
+| `weapons.js` | Weapon configs + `Projectile` class + firing logic |
+| `player.js` | `Player` class: movement, combat state, stickman rendering |
+| `touch.js` | Mobile joystick + buttons (feed virtual keys into the shared input) |
+| `ui.js` | Canvas HUD (scoreboard, weapon/cooldown bar) + DOM menu helpers |
+| `game.js` | Main loop, maps, input polling, AI bot, particles, audio, screen wiring |
+| `multiplayer.js` | Client-side Socket.io room/input relay |
+| `server.js` | Node + Socket.io room server |
 
-**With online multiplayer (also serves the built game itself):**
+## Notes & known simplifications
 
-```
-npm install
-npm start
-```
-
-Runs the build, then starts `server/server.js` at `http://localhost:3000`.
-Open that URL in two browser tabs to test online play locally, or deploy
-this whole project to Render/Railway/Fly.io/a VPS for a public URL. See
-[`docs/Systems.md`](docs/Systems.md#online-multiplayer) for the full
-online-play flow (room codes, host/guest roles, color assignment).
-
-**Security note:** once you know your deployed site's URL, set the
-`ALLOWED_ORIGIN` environment variable to it (e.g.
-`https://your-game.onrender.com`) to restrict which sites can connect to
-your Socket.IO server. It defaults to `*` (open) for zero-config local
-testing. The server also rate-limits room creation/joining and chat to
-blunt casual spam — see `server/rateLimiter.js`.
-
-## Testing
-
-```
-npx playwright install   # first time only
-npm run build
-npm test
-```
-
-Runs `tests/smoke.spec.js` — loads the built game, exercises all 5 maps,
-pause/resume, local multiplayer input, and a regression check for the
-Space-map zero-gravity descend controls.
-
-## Adding a feature
-
-See [`prompts/AddFeature.md`](prompts/AddFeature.md) for a step-by-step
-template. Quick version:
-- **New weapon** → add its data to `src/features/weapons/weaponData.js`
-  and (if it needs custom art) a new file in `src/features/weapons/`.
-- **New map** → add a new file in `src/features/maps/` (copy an existing
-  one as a template) and register it in `src/features/maps/index.js`.
-- **New screen/menu** → add markup to `public/index.html`, wire buttons
-  in `src/ui/menuBindings.js`.
-
-## Coding standards
-
-- One responsibility per module — see `context/CodingRules.md` for the
-  full list before making structural changes.
-- Simulation and rendering are separate (`entities/` vs `rendering/`).
-  Don't add drawing code to an entity class; don't add game-state
-  mutation to a `ui/` or `rendering/` file.
-- Config/tunable values go in `src/config/constants.js` or the relevant
-  feature's data file (e.g. `weaponData.js`), not hard-coded inline.
-- Keep imports explicit — import the specific functions/values you need,
-  not whole modules as a dumping ground.
-
-## Known gaps / things not yet done
-
-- `entities/projectiles/LaserBeam.js` is currently unused dead code
-  (inherited from before the refactor — the laser gun actually fires a
-  fast `Bullet`, not a `LaserBeam`). Flagged here rather than silently
-  removed; see `context/Roadmap.md`.
-- No automated tests existed before this refactor; `tests/smoke.spec.js`
-  is a first pass, not full coverage (e.g. no automated online-multiplayer
-  test, since that needs two real socket connections).
-- `public/index.html` and `dist/index.html`'s built version must be kept
-  in sync manually if you edit HTML/CSS directly — always re-run
-  `npm run build` after changing `public/`.
+- Audio is generated on the fly with the Web Audio API (oscillator "blips") rather than shipped sound files, so there's nothing to download and no missing-asset errors — swap in real files in `Audio_.play()` (in `game.js`) whenever you have some.
+- The online netcode is an input-relay model, not a fully authoritative server — great for a LAN/friends game, but a competitive-grade version would want server-side simulation and reconciliation.
+- Ring-outs: knockback can push a player off a platform edge into a fall, which counts as a death (round point to the opponent) — this is intentional on the Moon map's floating platforms, and only reachable via strong knockback on the wider maps.
