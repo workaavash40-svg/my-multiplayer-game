@@ -24,6 +24,7 @@ const PUBLIC_FILES = {
   'player.js': 'text/javascript; charset=utf-8',
   'ui.js': 'text/javascript; charset=utf-8',
   'touch.js': 'text/javascript; charset=utf-8',
+  'bot.js': 'text/javascript; charset=utf-8',
   'multiplayer.js': 'text/javascript; charset=utf-8',
   'game.js': 'text/javascript; charset=utf-8'
 };

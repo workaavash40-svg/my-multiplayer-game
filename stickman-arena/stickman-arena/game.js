@@ -198,6 +198,7 @@ const State = {
   mapId: 'whitearena',
   players: [],
   bot: false,
+  botLevel: 2,         // 1 (Rookie) .. 6 (Impossible), see bot.js
   screen: 'menu',
   running: false,
   paused: false,
@@ -254,28 +255,6 @@ function neutralInput() {
   };
 }
 
-// ---------- Simple AI bot ----------
-function computeBotInput(bot, opp) {
-  const dx = opp.x - bot.x;
-  const dist = Math.abs(dx);
-  const input = neutralInput();
-  if (dist > 260) input[dx > 0 ? 'right' : 'left'] = true;
-  else if (dist < 90) input[dx > 0 ? 'left' : 'right'] = true;
-
-  if (Math.random() < 0.02 && bot.onGround) input.jumpPressed = true;
-
-  const dy = opp.y - bot.y;
-  const targetAngle = Math.atan2(dy, Math.abs(dx) || 1);
-  if (targetAngle < bot.aimAngle - 0.08) input.aimUp = true;
-  else if (targetAngle > bot.aimAngle + 0.08) input.aimDown = true;
-
-  if (dist < 480) { input.fireHeld = true; input.firePressed = true; }
-  if (Math.random() < 0.002) input.switchPressed = true;
-  if (bot.hp < 35 && Math.random() < 0.02) input.shieldPressed = true;
-  if (Math.random() < 0.004) input.specialPressed = true;
-  return input;
-}
-
 /**
  * Returns [inputForP1, inputForP2]. While `locked` (countdown / between rounds)
  * both are neutral so stickmen just settle on the ground.
@@ -290,7 +269,7 @@ function getFrameInputs(p1, p2, locked) {
     return mySlot === 0 ? [localInput, remote] : [remote, localInput];
   }
   if (locked) return [neutralInput(), neutralInput()];
-  return [buildInput(p1.controls), State.bot ? computeBotInput(p2, p1) : buildInput(p2.controls)];
+  return [buildInput(p1.controls), State.bot ? computeBotInput(p2, p1, State.projectiles) : buildInput(p2.controls)];
 }
 
 // ---------- Particles & shake ----------
@@ -336,7 +315,7 @@ function startMatch(mapId, mode, botEnabled) {
   State.bot = mode === 'local' && (IS_TOUCH || !!botEnabled); // a phone has no second keyboard
 
   const p1 = new Player('p1', 'Blue', 140, 300, '#2b6fff', '#2b6fff', CONTROL_SCHEMES.p1, 1);
-  const p2 = new Player('p2', State.bot ? 'Bot' : 'Red', LOGICAL_W - 160, 300, '#ff3b3b', '#ff3b3b', CONTROL_SCHEMES.p2, -1);
+  const p2 = new Player('p2', State.bot ? 'Bot L' + State.botLevel : 'Red', LOGICAL_W - 160, 300, '#ff3b3b', '#ff3b3b', CONTROL_SCHEMES.p2, -1);
   State.players = [p1, p2];
   State.matchSeconds = 0;
   State.round = 1;
@@ -359,6 +338,11 @@ function startMatch(mapId, mode, botEnabled) {
 
 function startRound() {
   const p1 = State.players[0], p2 = State.players[1];
+  if (State.bot) {   // fresh brain every round; high levels also get bonus HP / faster shield
+    p2.ai = createBotAI(State.botLevel, -1);
+    p2.maxHp = p2.ai.cfg.hp;
+    p2.shieldCdScale = p2.ai.cfg.shieldCd;
+  }
   p1.respawn(140, 300);
   p2.respawn(LOGICAL_W - 160, 300);
   p1.facing = 1; p2.facing = -1;
@@ -407,6 +391,7 @@ function showVictory(winnerIdx) {
   if ((typeof TouchControls !== "undefined")) TouchControls.releaseAll();
   const winner = State.players[winnerIdx];
   UI.setVictoryScreen(winner.name, winner.barColor, State.players[0], State.players[1]);
+  document.getElementById('victory-next-level').hidden = !(State.bot && winnerIdx === 0 && State.botLevel < 6);
   UI.showScreen('victory-screen');
   Audio_.play('victory');
 }
@@ -736,6 +721,26 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // victory screen
+  // bot level picker
+  const levelBtns = document.querySelectorAll('.level-btn');
+  const levelDesc = document.getElementById('level-desc');
+  const picker = document.getElementById('bot-level-picker');
+  function selectLevel(n) {
+    State.botLevel = n;
+    levelBtns.forEach(b => b.classList.toggle('selected', Number(b.dataset.level) === n));
+    levelDesc.textContent = `Level ${n} · ${BOT_LEVELS[n].name} — ${BOT_LEVELS[n].blurb}`;
+  }
+  levelBtns.forEach(b => b.addEventListener('click', () => { Audio_.play('menu'); selectLevel(Number(b.dataset.level)); }));
+  const botToggle = document.getElementById('bot-toggle');
+  const syncPicker = () => { picker.hidden = !(IS_TOUCH || botToggle.checked); };
+  botToggle.addEventListener('change', syncPicker);
+  selectLevel(State.botLevel);
+  syncPicker();
+
+  click('victory-next-level', () => {
+    selectLevel(Math.min(6, State.botLevel + 1));
+    startMatch(State.mapId, State.mode, true);
+  });
   click('victory-play-again', () => startMatch(State.mapId, State.mode, State.bot));
   click('victory-change-map', () => UI.showScreen('map-select'));
   click('victory-main-menu', () => UI.showScreen('main-menu'));

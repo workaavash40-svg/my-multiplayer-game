@@ -27,6 +27,21 @@ Open the page on a phone (landscape). On touch devices the keyboard panels are r
 Every round (and the match start) opens with an animated 3 · 2 · 1 · FIGHT! countdown; controls unlock on FIGHT!.
 The simulation runs at a fixed 60 Hz, so 90/120 Hz phones play at the same speed as desktops.
 
+## Bot levels (1-6)
+
+Tick "Fight a bot" in Local Multiplayer and pick a level (touch devices always play a bot).
+
+| Level | Name | Behaviour |
+|---|---|---|
+| 1 | Rookie | Slow aim, misses a lot, short bursts, slow to turn around |
+| 2 | Easy | Sloppy aim, longer bursts, slow to turn |
+| 3 | Average | Decent aim, jumps, shields when hurt, still slow to turn |
+| 4 | Hard | Strong aim and dodging; **turns and fires instantly** |
+| 5 | Expert | Leads your movement, dodges and shields, 125 HP |
+| 6 | Impossible | Perfect aim and timing, 175 HP, shield recharges twice as fast |
+
+Levels 1-3 need time to turn around when you cross to their other side; levels 4+ turn and shoot immediately. After beating a bot, the victory screen offers **Next Level**. All numbers live in the `BOT_LEVELS` table at the top of `bot.js`.
+
 ## Controls
 
 **Player 1 (Blue):** A/D move, W jump, F shoot, R/V aim up/down, Q switch weapon, E shield, C special.
@@ -63,6 +78,7 @@ Networking model: each client runs the same physics for both stickmen and only p
 | `weapons.js` | Weapon configs + `Projectile` class + firing logic |
 | `player.js` | `Player` class: movement, combat state, stickman rendering |
 | `touch.js` | Mobile joystick + buttons (feed virtual keys into the shared input) |
+| `bot.js` | Six-level bot AI (`BOT_LEVELS` table) |
 | `ui.js` | Canvas HUD (scoreboard, weapon/cooldown bar) + DOM menu helpers |
 | `game.js` | Main loop, maps, input polling, AI bot, particles, audio, screen wiring |
 | `multiplayer.js` | Client-side Socket.io room/input relay |

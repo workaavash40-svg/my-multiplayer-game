@@ -61,6 +61,18 @@
         <input type="checkbox" id="bot-toggle">
         <span>No second player? Fight a bot instead</span>
       </label>
+      <div id="bot-level-picker" hidden>
+        <h4 class="section-label">Bot level</h4>
+        <div class="level-grid">
+          <button class="level-btn" data-level="1"><b>1</b><span>Rookie</span></button>
+          <button class="level-btn" data-level="2"><b>2</b><span>Easy</span></button>
+          <button class="level-btn" data-level="3"><b>3</b><span>Average</span></button>
+          <button class="level-btn" data-level="4"><b>4</b><span>Hard</span></button>
+          <button class="level-btn" data-level="5"><b>5</b><span>Expert</span></button>
+          <button class="level-btn" data-level="6"><b>6</b><span>Impossible</span></button>
+        </div>
+        <p id="level-desc" class="hint"></p>
+      </div>
       <div class="menu-buttons">
         <button id="local-continue" class="btn btn-primary">Choose Map →</button>
         <button class="btn btn-back-menu">Back</button>
@@ -199,6 +211,7 @@
       <h2 id="victory-winner">Player Wins!</h2>
       <p id="victory-score" class="victory-score"></p>
       <div class="menu-buttons">
+        <button id="victory-next-level" class="btn btn-primary" hidden>Next Level →</button>
         <button id="victory-play-again" class="btn btn-primary">Play Again</button>
         <button id="victory-change-map" class="btn">Change Map</button>
         <button id="victory-main-menu" class="btn">Main Menu</button>
@@ -220,6 +233,7 @@
 <script src="player.js"></script>
 <script src="ui.js"></script>
 <script src="touch.js"></script>
+<script src="bot.js"></script>
 <script src="multiplayer.js"></script>
 <script src="game.js"></script>
 </body>

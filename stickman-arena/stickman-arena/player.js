@@ -63,6 +63,7 @@ class Player {
     this.shieldActive = false;
     this.shieldTimer = 0;
     this.shieldCooldown = 0;
+    this.shieldCdScale = 1; // bots on high levels recharge faster
 
     // special (flight on wind map)
     this.flying = false;
@@ -139,11 +140,15 @@ class Player {
     }
 
     // --- Aiming ---
-    if (input.aimUp) this.aimAngle -= 0.06;
-    if (input.aimDown) this.aimAngle += 0.06;
-    this.aimAngle = Math.max(-1.3, Math.min(1.3, this.aimAngle));
-    if (!input.aimUp && !input.aimDown) {
-      this.aimAngle *= 0.9; // drift back toward horizontal
+    if (typeof input.aimSet === 'number') {
+      this.aimAngle = Math.max(-1.3, Math.min(1.3, input.aimSet)); // bots set the angle directly
+    } else {
+      if (input.aimUp) this.aimAngle -= 0.06;
+      if (input.aimDown) this.aimAngle += 0.06;
+      this.aimAngle = Math.max(-1.3, Math.min(1.3, this.aimAngle));
+      if (!input.aimUp && !input.aimDown) {
+        this.aimAngle *= 0.9; // drift back toward horizontal
+      }
     }
 
     // --- Horizontal movement ---
@@ -155,6 +160,7 @@ class Player {
       this.facing = 1;
     }
     this.vx = Math.max(-Physics.MAX_MOVE_SPEED, Math.min(Physics.MAX_MOVE_SPEED, this.vx));
+    if (input.face) this.facing = input.face; // bots decide their own facing (lets them lag when turning)
 
     // --- Jump ---
     if (input.jumpPressed && this.onGround) {
@@ -209,7 +215,7 @@ class Player {
       this.shieldTimer--;
       if (this.shieldTimer <= 0) {
         this.shieldActive = false;
-        this.shieldCooldown = SHIELD_CONFIG.cooldownFrames;
+        this.shieldCooldown = Math.round(SHIELD_CONFIG.cooldownFrames * this.shieldCdScale);
       }
     } else if (this.shieldCooldown > 0) {
       this.shieldCooldown--;
